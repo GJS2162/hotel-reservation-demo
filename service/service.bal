@@ -4,11 +4,29 @@ final Room[] rooms = getAllRooms();
 table<Reservation> key(id) roomReservations = table [];
 
 service /reservations on new http:Listener(9090) {
-
+    // This code snippet defines a service called /reservations that listens on port 9090 for HTTP POST requests.
+    // The service exposes a single function called post that accepts
+    // a NewReservationRequest object as input and returns a Reservation, NewReservationError, or an error.
+    
     resource function post .(NewReservationRequest payload) returns Reservation|NewReservationError|error? {
         // Complete the implementation to check whether a room is available for the given dates
         // Use getAvailableRoom function to check whether a room is available
         // And create a new reservation if room is available
+        Room|() availableRoom =  check getAvailableRoom(payload.checkinDate,
+         payload.checkoutDate, payload.roomType);
+        if availableRoom is (){
+            return {body: "No rooms available for the given dates"};
+        }
+        Reservation reservation = {
+        checkoutDate: payload.checkoutDate,
+        checkinDate: payload.checkoutDate,
+        id: roomReservations.length() + 1,
+        user: payload.user,
+        room: availableRoom
+        };
+        roomReservations.add(reservation);
+        sendNotificationForReservation(reservation, "Created");
+        return reservation;
     }
 
     resource function put [int reservationId](UpdateReservationRequest payload) returns Reservation|UpdateReservationError|error {
